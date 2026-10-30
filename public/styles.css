@@ -44,3 +44,58 @@ footer{padding:35px var(--gutter);border-top:1px solid #ffffff20;display:flex;al
 @media(max-width:760px){.hero-second h2{font-size:clamp(35px,9.4vw,55px)}.hero-second>p:last-child{max-width:340px;font-size:13px}.core-fallback{inset:0}.orbit-label{font-size:10px}.orbit-center-caption{top:calc(50% + 22px);font-size:8px}.hero-light{background:radial-gradient(ellipse 60% 34% at 50% 68%,#ffffff05,transparent 90%)}}
 @media(max-width:760px) and (max-height:740px){.hero-second h2{font-size:32px;line-height:1.07}.hero-second>p:last-child{font-size:12px;line-height:1.6}.orbit-label{font-size:9px}.orbit-center-caption{top:calc(50% + 17px);font-size:7px}}
 @media(max-width:960px) and (max-height:500px) and (orientation:landscape){.hero-second h2{font-size:29px}.hero-second>p:last-child{font-size:11px;line-height:1.5}.orbit-label{font-size:9px}.orbit-center-caption{top:calc(50% + 18px);font-size:7px}}
+
+/* Eclipse direction: a bright stage, one orbit and a sculptural brand symbol. */
+.hero-stage{background:#f0f0ec;color:#171719}
+.hero-stage:after{background:linear-gradient(transparent,#f4f4f0)}
+.hero-light{background:radial-gradient(ellipse 38% 35% at 72% 53%,#fff 0%,transparent 100%)}
+.hero-copy .intro-line,.hero-second .intro-line{color:#626269}
+.hero-copy .tiny-cross{color:#232328}
+h1{font-size:clamp(76px,8vw,150px);letter-spacing:-.07em;line-height:.98}
+.hero-description,.hero-second>p:last-child{color:#67676e;max-width:370px}
+.hero .button-light{background:#1b1b20;color:#f4f4f0;border-radius:8px;padding:19px 24px}
+.hero .button-light:hover{background:#35353b}
+.hero-secondary{color:#65656c}
+.hero-bottom{color:#727279}
+.hero-bottom>a span{color:#333339}
+.orbit-label{color:#42424b;font-size:11px}
+.orbit-center-caption{display:none}
+.fallback-orbits{stroke:#555}
+.fallback-orbits g[fill="#eee"]{fill:#333}
+.fallback-orbit-logo{filter:invert(1);width:24%}
+.services:before{display:none}
+.header.is-light{background:#f0f0eced;box-shadow:none}
+.header.is-light.menu-open{background:#0c0c0d;color:#f4f4f0}
+.header.is-light.menu-open .menu-toggle{border-color:#ffffff50}
+.fallback-orbit-logo{filter:none;width:33%;max-width:250px}
+.fallback-orbits ellipse:nth-child(2){display:none}
+.orbit-label{background:#f0f0ecdc;padding:2px 4px;border-radius:3px}
+@media(max-width:760px){
+ h1{font-size:clamp(56px,15vw,88px);line-height:.96;margin-bottom:24px}
+ .hero-copy{top:108px}
+ .hero-description{font-size:13px;max-width:290px;margin-bottom:22px}
+ .hero .button-light{padding:16px 20px;min-height:48px}
+ .hero-copy .intro-line{font-size:10px;margin-bottom:21px}
+ .hero-light{background:radial-gradient(ellipse 60% 30% at 50% 70%,#fff,transparent)}
+ .orbit-label{font-size:10px}
+ .hero-second h2{font-size:clamp(36px,9.7vw,56px)}
+}
+@media(max-width:760px) and (max-height:740px){
+ .hero-copy{top:88px}
+ h1{font-size:52px;margin-bottom:18px}
+ .hero-copy .intro-line{font-size:9px;margin-bottom:15px}
+ .hero-description{font-size:12px;margin-bottom:17px}
+ .hero .button-light{padding:13px 18px;min-height:44px}
+ .core-visual{top:53%;bottom:5%}
+ .hero-second h2{font-size:32px}
+ .orbit-label{font-size:9px}
+}
+@media(max-width:960px) and (max-height:500px) and (orientation:landscape){
+ .hero-copy{top:82px;width:48%}
+ h1{font-size:46px;margin-bottom:14px}
+ .hero-description{font-size:11px;line-height:1.5;margin-bottom:15px}
+ .hero-copy .intro-line{font-size:9px;margin-bottom:12px}
+ .hero .button-light{padding:12px 16px;min-height:44px}
+ .core-visual{top:40px;bottom:25px}
+ .hero-second h2{font-size:29px}
+}
