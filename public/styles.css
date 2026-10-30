@@ -99,3 +99,22 @@ h1{font-size:clamp(76px,8vw,150px);letter-spacing:-.07em;line-height:.98}
  .core-visual{top:40px;bottom:25px}
  .hero-second h2{font-size:29px}
 }
+
+/* Wordmark reveal: a dark stage keeps the animated letters in focus. */
+.hero-stage{background:#101012;color:#f4f4f0}
+.hero-stage:after{background:linear-gradient(transparent,#141417)}
+.hero-light{background:radial-gradient(ellipse 35% 44% at 74% 48%,#ffffff06,transparent 100%)}
+.hero-copy .intro-line,.hero-second .intro-line{color:#a2a2ac}
+.hero-copy .tiny-cross{color:#eeeef2}
+h1{font-size:clamp(72px,7.2vw,132px);line-height:1.015}
+.hero-description,.hero-second>p:last-child{color:#a3a3ad;max-width:365px;font-size:clamp(14px,1.15vw,19px)}
+.hero .button-light{background:#f1f1ee;color:#151518;border-radius:4px}
+.hero .button-light:hover{background:#d8d8d5}
+.hero-secondary,.hero-bottom{color:#93939e}
+.hero-bottom>a span{color:#ccc}
+.services:before{display:block;background:linear-gradient(transparent,#f4f4f014,#f4f4f0)}
+@media(max-width:760px){h1{font-size:clamp(50px,13.7vw,78px);margin-bottom:22px}.hero-description{font-size:13px;line-height:1.65;max-width:310px}.hero-light{background:radial-gradient(ellipse 50% 35% at 50% 70%,#ffffff06,transparent)}.hero-second h2{font-size:clamp(36px,9.6vw,56px)}}
+@media(max-width:760px) and (max-height:740px){h1{font-size:47px;margin-bottom:18px}.hero-description{font-size:12px;line-height:1.55;margin-bottom:17px}.hero-second h2{font-size:32px}.hero-second>p:last-child{font-size:12px;line-height:1.6}}
+@media(max-width:960px) and (max-height:500px) and (orientation:landscape){h1{font-size:40px;margin-bottom:14px}.hero-description{font-size:11px;line-height:1.5;margin-bottom:15px}.hero-second h2{font-size:29px}.hero-second>p:last-child{font-size:11px}}
+
+.fallback-wordmark{display:block;width:72%;height:auto;max-width:600px}

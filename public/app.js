@@ -30,7 +30,7 @@ function update(now){frame=0;const dt=lastTime?Math.min((now-lastTime)/1000,.1):
  const visibility=heroCopyVisibility(current),showSecond=visibility.second>.5;
  first.style.opacity=String(visibility.first);first.style.visibility=visibility.first<.001?'hidden':'visible';first.inert=visibility.first<.01;first.setAttribute('aria-hidden',String(visibility.first<.01));
  second.style.opacity=String(visibility.second);second.style.visibility=visibility.second<.001?'hidden':'visible';second.setAttribute('aria-hidden',String(!showSecond));
- if(core?.isValid()){if(!reduced)orbitalTime+=dt;core.render(reduced?.45:current,reduced?0:orbitalTime);}
+ if(core?.isValid()){if(!reduced)orbitalTime+=dt;core.render(reduced?1:current,reduced?0:orbitalTime);}
  document.body.dataset.coreProgress=current.toFixed(3);document.body.dataset.motion=reduced?'reduced':'full';
  if(!reduced&&(core?.isValid()||current!==target))requestFrame();else lastTime=0;
 }
