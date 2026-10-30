@@ -2,3 +2,9 @@ artifacts/
 node_modules/
 *.log
 .env*
+
+data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*

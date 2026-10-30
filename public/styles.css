@@ -120,3 +120,5 @@ h1{font-size:clamp(72px,7.2vw,132px);line-height:1.015}
 .fallback-wordmark{display:block;width:72%;height:auto;max-width:600px}
 
 .fallback-wordmark-wrap{position:relative;width:72%;max-width:600px}.fallback-wordmark-wrap .fallback-wordmark{width:100%;max-width:none}.fallback-o-orbit{position:absolute;right:-7%;top:-15%;width:32%;height:130%;border:.7px solid #888892;border-radius:50%;transform:rotate(-20deg)}
+
+.local-intake[hidden]{display:none}.local-intake{margin-top:22px;padding-top:6px;border-top:1px solid #ffffff25}.button-local{background:transparent;color:var(--paper);border:1px solid #ffffff65}.button-local:hover{background:#ffffff15}.button:disabled{cursor:wait;opacity:.6;transform:none}.field-error{color:#f0c6c6;font-size:11px;line-height:1.6}[aria-invalid="true"]{border-bottom-color:#f0c6c6}

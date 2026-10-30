@@ -12,7 +12,44 @@ const services=[...document.querySelectorAll('.service-list details')];
 services.forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open)services.forEach(other=>{if(other!==detail)other.open=false;});}));
 
 const form=document.querySelector('#brief-form'),status=document.querySelector('.form-status');
-form.addEventListener('submit',event=>{event.preventDefault();if(!form.reportValidity())return;const data=Object.fromEntries(new FormData(form));const blob=new Blob([composeBrief(data)],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='astro-briefing-seguranca.txt';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Briefing preparado. O download foi iniciado; nenhum dado foi enviado.';});
+const localIntake=document.querySelector('.local-intake'),saveLocal=document.querySelector('#save-local');
+let localEnabled=false,saving=false;
+const fieldMessages={name:'Informe um nome de até 100 caracteres.',company:'Informe uma empresa de até 150 caracteres.',email:'Informe um e-mail válido de até 200 caracteres.',service:'Escolha uma das opções de avaliação.',scope:'Informe um contexto entre 10 e 3000 caracteres.'};
+const fieldErrors=new Map();
+for(const name of Object.keys(fieldMessages)){
+ const field=form.elements.namedItem(name),error=document.createElement('span');
+ error.id='error-'+name;error.className='field-error';error.hidden=true;field.insertAdjacentElement('afterend',error);field.setAttribute('aria-describedby',error.id);fieldErrors.set(name,error);
+ field.addEventListener('input',()=>{field.removeAttribute('aria-invalid');error.hidden=true;error.textContent='';});
+}
+function clearFieldErrors(){for(const [name,error] of fieldErrors){form.elements.namedItem(name).removeAttribute('aria-invalid');error.hidden=true;error.textContent='';}}
+function readBrief(){return Object.fromEntries(new FormData(form));}
+form.addEventListener('submit',event=>{
+ event.preventDefault();if(!form.reportValidity())return;
+ const data=readBrief();data.service=form.elements.namedItem('service').selectedOptions[0].textContent;
+ const blob=new Blob([composeBrief(data)],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='astro-briefing-seguranca.txt';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ status.textContent='Briefing preparado. O download foi iniciado; nenhum dado foi enviado nesta ação.';
+});
+// Capability discovery carries no form data; errors preserve download mode.
+fetch('/api/capabilities',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(5000)})
+ .then(response=>response.ok?response.json():null)
+ .then(capabilities=>{localEnabled=capabilities?.intake?.enabled===true&&capabilities.intake.mode==='local-demo';localIntake.hidden=!localEnabled;})
+ .catch(()=>{});
+saveLocal.addEventListener('click',async()=>{
+ if(!localEnabled||saving||!form.reportValidity())return;
+ clearFieldErrors();saving=true;saveLocal.disabled=true;saveLocal.textContent='Salvando…';status.textContent='Salvando o pedido neste computador…';
+ try{
+  const response=await fetch('/api/assessment-requests',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(readBrief()),signal:AbortSignal.timeout(15000)});
+  const result=await response.json().catch(()=>null);
+  if(response.status===201&&result?.status==='received'&&typeof result.id==='string'&&result.id.length){status.textContent='Pedido salvo localmente neste computador. Nenhum e-mail ou mensagem de WhatsApp foi enviado.';return;}
+  if(response.status===422){
+   const fields=result?.error?.fields,names=Array.isArray(fields)?fields:fields&&typeof fields==='object'?Object.keys(fields):[];
+   for(const name of names){if(!fieldErrors.has(name))continue;const field=form.elements.namedItem(name),error=fieldErrors.get(name);field.setAttribute('aria-invalid','true');error.textContent=fieldMessages[name];error.hidden=false;}
+   status.textContent='Revise os campos indicados e tente novamente. Você também pode baixar o briefing.';
+   form.querySelector('[aria-invalid="true"]')?.focus();
+  }else{status.textContent='Não foi possível confirmar o salvamento local. Os campos foram mantidos; você pode tentar novamente ou baixar o briefing.';}
+ }catch{status.textContent='Não foi possível confirmar o salvamento local. Os campos foram mantidos; você pode tentar novamente ou baixar o briefing.';}
+ finally{saving=false;saveLocal.disabled=false;saveLocal.textContent='Salvar pedido localmente';}
+});
 
 // The fixed header follows the real section below it, including direct anchor visits.
 const lightSections=[...document.querySelectorAll('.section-light')];let sectionBounds=[];
