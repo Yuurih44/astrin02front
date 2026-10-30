@@ -16,7 +16,7 @@
 ## Tasks
 - [x] Testar primeiro narrativa contínua e briefing; implementar funções puras.
 - [x] Construir conteúdo, navegação, serviços, processo, FAQ, contato e estilos responsivos.
-- [x] Implementar esfera Three segmentada, abertura controlada por scroll, pausa e fallback.
+- [x] Implementar cena Three com abertura controlada por scroll, pausa e fallback; revisão autorizada substitui esfera por aplicação, API e dados.
 - [x] Rodar servidor local4180, testes e capturas desktop/mobile; refinar visual.
 - [x] Revisão independente: sem falhas importantes confirmadas; ajustar ordem do método, overflow de título mobile e foco após menu. Entregar link local.
 

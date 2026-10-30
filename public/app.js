@@ -1,4 +1,4 @@
-import {clamp,composeBrief} from './experience.js';
+import {clamp,composeBrief,applicationPose,heroCopyVisibility} from './experience.js';
 
 const header=document.querySelector('.header'),menuButton=document.querySelector('.menu-toggle'),menu=document.querySelector('.mobile-menu');
 function closeMenu(restoreFocus=false){menu.hidden=true;menuButton.setAttribute('aria-expanded','false');menuButton.setAttribute('aria-label','Abrir menu');header.classList.remove('menu-open');document.body.style.overflow='';if(restoreFocus)menuButton.focus();}
@@ -23,15 +23,23 @@ const hero=document.querySelector('.hero'),first=document.querySelector('.hero-c
 const motion=matchMedia('(prefers-reduced-motion:reduce)');
 const fullMotion=new URLSearchParams(location.search).get('motion')==='full';
 let reduced=motion.matches&&!fullMotion,core=null,visible=true,target=0,current=0,frame=0,lastTime=0,range=1,start=0;
+const sceneCopy={
+ application:{title:['Cada camada','conta.'],description:'A interface é só o começo. A análise acompanha o caminho entre a aplicação, a API e os dados.',caption:'Aplicação ilustrativa · Interface, API e dados',label:'Uma análise em camadas',pose:0},
+ finding:{title:['Falha','de permissão.'],description:'Estar conectado não basta. Neste exemplo, falta verificar se o documento pertence à empresa do usuário.',caption:'Falha de permissão · Exemplo ilustrativo',label:'Descoberta e validação',pose:.5},
+ correction:{title:['Corrigir','na origem.'],description:'A recomendação é validar, no servidor, a permissão do usuário para cada recurso solicitado.',caption:'Correção · Verificação de permissão na API',label:'Uma orientação para agir',pose:.8},
+ retest:{title:['Testar de novo.','Validar a correção.'],description:'No reteste ilustrativo, a API bloqueia o acesso indevido ao documento. O trabalho termina com evidência da correção.',caption:'Reteste ilustrativo · Acesso indevido bloqueado',label:'Do achado ao reteste',pose:1}
+};
+let lastStage='';
 function measure(){start=hero.offsetTop;range=Math.max(1,hero.offsetHeight-document.querySelector('.hero-stage').offsetHeight);measureSections();updateHeader();readScroll();if(core&&visible)requestFrame();}
 function readScroll(){target=clamp((scrollY-start)/range);updateHeader();if(visible)requestFrame();}
 function requestFrame(){if(!frame&&!document.hidden&&visible)frame=requestAnimationFrame(update);}
 function update(now){frame=0;const dt=lastTime?Math.min((now-lastTime)/1000,.1):1/60;lastTime=now;current=reduced?target:current+(target-current)*(1-Math.exp(-dt/.065));if(Math.abs(target-current)<.0001)current=target;
- const blend=clamp((current-.28)/.30),showSecond=blend>.5;
- first.style.opacity=String(1-blend);first.style.visibility=blend>.99?'hidden':'visible';first.inert=showSecond;first.setAttribute('aria-hidden',String(showSecond));
- second.style.opacity=String(blend);second.style.visibility=blend<.01?'hidden':'visible';second.setAttribute('aria-hidden',String(!showSecond));
- caption.textContent=current>.55?'Conhecer as camadas muda a perspectiva.':'Todo sistema tem camadas.';
- if(core?.isValid())core.render(reduced?.62:current);
+ const visibility=heroCopyVisibility(current),showSecond=visibility.second>.5;
+ first.style.opacity=String(visibility.first);first.style.visibility=visibility.first<.001?'hidden':'visible';first.inert=visibility.first<.01;first.setAttribute('aria-hidden',String(visibility.first<.01));
+ second.style.opacity=String(visibility.second);second.style.visibility=visibility.second<.001?'hidden':'visible';second.setAttribute('aria-hidden',String(!showSecond));
+ const stage=applicationPose(current).stage,copy=sceneCopy[stage];
+ if(stage!==lastStage){lastStage=stage;document.querySelector('[data-analysis-title]').replaceChildren(document.createTextNode(copy.title[0]),document.createElement('br'),document.createTextNode(copy.title[1]));document.querySelector('[data-analysis-description]').textContent=copy.description;document.querySelector('[data-analysis-label]').textContent=copy.label;caption.textContent=copy.caption;}
+ if(core?.isValid())core.render(reduced?copy.pose:current);
  document.body.dataset.coreProgress=current.toFixed(3);document.body.dataset.motion=reduced?'reduced':'full';
  if(!reduced&&current!==target)requestFrame();else lastTime=0;
 }

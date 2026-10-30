@@ -2,7 +2,7 @@
 
 Site de apresentação em português para a equipe Astro: pentest web/API, avaliação de infraestrutura e acompanhamento da correção. O usuário autorizou uma primeira versão criativa para avaliar e mudar depois. Não publicar, inventar resultados, clientes, certificações ou prometer segurança absoluta. A disponibilidade comercial dos serviços será validada antes de lançamento.
 
-Identidade: logo oficial Astro, preto #0c0c0d, branco #f4f4f0, prata #c6c7c8, cinza de texto #a8a8ac, tinta #18181a. Manrope variável. Uma única experiência WebGL: esfera metálica segmentada, com núcleo geométrico, revela suas camadas conforme a rolagem. Texto alinhado à esquerda, palco 3D à direita; no celular, áreas separadas para texto e objeto. Sem paisagem lunar, confete, dashboards falsos ou números de desempenho.
+Identidade: logo oficial Astro, preto #0c0c0d, branco #f4f4f0, prata #c6c7c8, cinza de texto #a8a8ac, tinta #18181a. Manrope variável. Revisão autorizada: o usuário rejeitou a esfera abstrata e escolheu uma aplicação concreta em camadas. A experiência WebGL mostra portal, API e dados; uma falha de permissão aparece na API e evolui para correção e reteste. O exemplo é explicitamente ilustrativo, sem análise real. Texto alinhado à esquerda, palco3D à direita; no celular, áreas separadas. Sem paisagem lunar, confete ou números de desempenho inventados.
 
 Estrutura: abertura imersiva / serviços em acordeão sobre fundo claro / método e exemplo de relatório / perguntas frequentes / contato. O contraste entre seções usa faixa de transição discreta. Método informa autorização, escopo, validação, relatório, apoio e reteste. O exemplo de relatório é explicitamente ilustrativo.
 
