@@ -8,6 +8,8 @@ Revisão seguinte solicitada pelo usuário: variar também a composição. A abe
 
 Direção atual: o usuário pediu A → ASTRO ao descer a página, com letras entrando por trás do A. A abertura voltou ao fundo escuro, mantém apenas a marca 3D e a revela por completo em sequência. Detalhes e verificações em wordmark.md. O A como portal foi experimentado e substituído antes da entrega.
 
+Refinamento mais recente: o usuário pediu testar o O com a mesma animação e trazer a órbita de volta. O O é o ponto inicial; R/T/S/A emergem por trás e formam ASTRO à esquerda. A órbita com três pontos acompanha o O, inclusive na marca completa. wordmark.md descreve a versão corrente.
+
 Estrutura: abertura imersiva / serviços em acordeão sobre fundo claro / método e exemplo de relatório / perguntas frequentes / contato. O contraste entre seções usa faixa de transição discreta. Método informa autorização, escopo, validação, relatório, apoio e reteste. O exemplo de relatório é explicitamente ilustrativo.
 
 Contato: equipe ainda não tem e-mail nem WhatsApp. Formulário gera arquivo de briefing local, sem envio, armazenamento ou coleta. O botão diz Baixar briefing e explica sua finalidade. Não construir scanner nem realizar testes de vulnerabilidade.
