@@ -1,4 +1,4 @@
-import {clamp,composeBrief,heroCopyVisibility} from './experience.js';
+import {composeBrief} from './experience.js';
 
 const header=document.querySelector('.header'),menuButton=document.querySelector('.menu-toggle'),menu=document.querySelector('.mobile-menu');
 function closeMenu(restoreFocus=false){menu.hidden=true;menuButton.setAttribute('aria-expanded','false');menuButton.setAttribute('aria-label','Abrir menu');header.classList.remove('menu-open');document.body.style.overflow='';if(restoreFocus)menuButton.focus();}
@@ -56,25 +56,7 @@ const lightSections=[...document.querySelectorAll('.section-light')];let section
 function measureSections(){sectionBounds=lightSections.map(e=>({top:e.getBoundingClientRect().top+scrollY,bottom:e.getBoundingClientRect().bottom+scrollY}));}
 function updateHeader(){const point=scrollY+header.offsetHeight*.5;header.classList.toggle('is-light',sectionBounds.some(e=>point>=e.top&&point<e.bottom));}
 
-const hero=document.querySelector('.hero'),first=document.querySelector('.hero-copy'),second=document.querySelector('.hero-second'),visual=document.querySelector('.core-visual'),host=document.querySelector('#core-canvas');
-const motion=matchMedia('(prefers-reduced-motion:reduce)');
-const fullMotion=new URLSearchParams(location.search).get('motion')==='full';
-let reduced=motion.matches&&!fullMotion,core=null,visible=true,target=0,current=0,frame=0,lastTime=0,orbitalTime=0,range=1,start=0;
-function measure(){start=hero.offsetTop;range=Math.max(1,hero.offsetHeight-document.querySelector('.hero-stage').offsetHeight);measureSections();updateHeader();readScroll();if(core&&visible)requestFrame();}
-function readScroll(){target=clamp((scrollY-start)/range);updateHeader();if(visible)requestFrame();}
-function requestFrame(){if(!frame&&!document.hidden&&visible)frame=requestAnimationFrame(update);}
-function update(now){frame=0;const dt=lastTime?Math.min((now-lastTime)/1000,.1):1/60;lastTime=now;current=reduced?target:current+(target-current)*(1-Math.exp(-dt/.065));if(Math.abs(target-current)<.0001)current=target;
- const visibility=heroCopyVisibility(current),showSecond=visibility.second>.5;
- first.style.opacity=String(visibility.first);first.style.visibility=visibility.first<.001?'hidden':'visible';first.inert=visibility.first<.01;first.setAttribute('aria-hidden',String(visibility.first<.01));
- second.style.opacity=String(visibility.second);second.style.visibility=visibility.second<.001?'hidden':'visible';second.setAttribute('aria-hidden',String(!showSecond));
- if(core?.isValid()){if(!reduced)orbitalTime+=dt;core.render(reduced?1:current,reduced?0:orbitalTime);}
- document.body.dataset.coreProgress=current.toFixed(3);document.body.dataset.motion=reduced?'reduced':'full';
- if(!reduced&&(core?.isValid()||current!==target))requestFrame();else lastTime=0;
-}
-const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(visible){lastTime=0;readScroll();}else{if(frame)cancelAnimationFrame(frame);frame=0;lastTime=0;}},{threshold:0});observer.observe(hero);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(frame)cancelAnimationFrame(frame);frame=0;lastTime=0;}else if(visible)requestFrame();});
-motion.addEventListener('change',event=>{reduced=event.matches&&!fullMotion;requestFrame();});
-addEventListener('scroll',readScroll,{passive:true});addEventListener('resize',measure,{passive:true});
-const resizeObserver=new ResizeObserver(measure);resizeObserver.observe(document.querySelector('main'));resizeObserver.observe(document.querySelector('.hero-stage'));
+function measure(){measureSections();updateHeader();}
+addEventListener('scroll',updateHeader,{passive:true});addEventListener('resize',measure,{passive:true});
+new ResizeObserver(measure).observe(document.querySelector('main'));
 measure();document.fonts.ready.then(measure);
-try{const {createCore}=await import('./core.js');core=await createCore(host,{onFailure:()=>{visual.dataset.renderer='fallback';}});visual.dataset.renderer=core?.isValid()?'webgl':'fallback';measure();}catch{visual.dataset.renderer='fallback';}

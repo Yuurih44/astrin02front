@@ -1,31 +1,29 @@
 # Astro Security
 
-Site de apresentação da Astro Security, separado do projeto Astro banco. Inclui uma prévia imersiva independente em `/imersivo.html?motion=full`.
+Site institucional da Astro Security. A abertura imersiva em Three.js é a experiência principal em `/`, seguida de serviços, método, relatório demonstrativo, dúvidas e contato. `/imersivo.html` mantém acesso à mesma experiência. Projeto separado do Astro banco.
 
 ## Rodar
 
-Node 20 ou superior. Não é necessário instalar dependências.
+Node 20 ou superior. Instale as dependências quando necessário:
 
 ```sh
+npm ci
 npm run dev
 ```
 
-Abra http://localhost:4180/?motion=full ou execute `Abrir Astro Security.cmd`. Por padrão, o formulário baixa um briefing TXT e não armazena os campos no servidor.
+Abra http://localhost:4180/?motion=full. `npm run dev` inicia sem coleta. Para usar o PostgreSQL local já configurado nesta máquina, execute `Abrir Astro Security.cmd` ou `node dev-local.mjs`: esse comando inicia o banco portátil e habilita o formulário na porta 4180. `Abrir Demo Local.cmd` oferece a mesma experiência na 4182. Sem `motion=full`, a página respeita a preferência de movimento reduzido do sistema. Por padrão, o formulário baixa um briefing TXT e não envia ou armazena os campos no servidor.
 
-## Demonstração com banco local
+## PostgreSQL
 
-Execute `Abrir Demo Local.cmd` e abra http://localhost:4182/?motion=full#contato. O formulário oferece uma ação separada para salvar localmente, após confirmar a capacidade da API. O download continua disponível. Nada é enviado por e-mail ou WhatsApp.
+A persistência usa PostgreSQL com o driver `pg`, migrações transacionais e consultas parametrizadas. Defina `DATABASE_URL` para uma instância PostgreSQL e `ASTRO_ENABLE_INTAKE=1` para habilitar a ação separada de salvar no formulário. A aplicação aguarda o COMMIT antes de responder sucesso. Não há envio por e-mail ou WhatsApp, scanner ou listagem pública dos pedidos.
 
-Configuração por variáveis de ambiente:
-
+- `DATABASE_URL`: conexão PostgreSQL; mantenha credenciais fora do Git.
+- `ASTRO_ENABLE_INTAKE=1`: habilita armazenamento, restrito a loopback nesta configuração local.
 - `ASTRO_PORT`: porta, padrão 4180.
 - `ASTRO_HOST`: endereço, padrão 127.0.0.1.
-- `ASTRO_ENABLE_INTAKE=1`: habilita armazenamento, restrito a loopback.
-- `ASTRO_DATA_DIR`: diretório opcional dos dados. O padrão é `%LOCALAPPDATA%\AstroSecurity\data`, fora do OneDrive e dos arquivos públicos.
+- `ASTRO_TEST_DATABASE_URL`: conexão dedicada aos testes; cada fixture cria seu próprio schema aleatório.
 
-SQLite real via SQL.js 1.13.0, incluído em `db/vendor` com licença e procedência. A demonstração usa um processo gravador por arquivo e exporta o banco em memória a cada gravação. Não é uma configuração de produção. Detalhes de persistência em `db/README.md` e revisão em `docs/security-review.md`.
-
-A API valida os campos, limita corpo e frequência, verifica a origem e responde sucesso após persistir. Não existe endpoint público de consulta dos pedidos. O site não executa testes de vulnerabilidade.
+O arquivo de conexão não é servido pelo site. Dados anteriores em SQLite não são apagados nem usados pela aplicação. Detalhes da implementação e da configuração local em `db/README.md`.
 
 ## Verificar
 
@@ -33,8 +31,12 @@ A API valida os campos, limita corpo e frequência, verifica a origem e responde
 npm test
 npm run check
 npm run test:intake
+node verify-browser.mjs
+node verify-immersive.mjs
 ```
 
-Os testes unitários e de integração usam dados sintéticos e arquivos temporários. O teste de navegador inicia servidores temporários nos modos com e sem armazenamento, em larguras 320 e 390. Ele usa Playwright já disponível no projeto vizinho `astro-bank` e Edge instalado; essa dependência é apenas de desenvolvimento. `verify-browser.mjs` e `verify-immersive.mjs` verificam as experiências visuais com o servidor 4180 ativo.
+Testes reais de persistência exigem `ASTRO_TEST_DATABASE_URL`; sem ela, a suíte sinaliza explicitamente os casos não executados. A verificação de formulário exige o banco real e inicia seus próprios servidores. Os dois verificadores visuais usam o servidor 4180 ativo.
 
-Three.js 0.170 e Manrope são servidos localmente, com licenças em `public/vendor`. Logo Astro fornecida pelo projeto do usuário. A cena 3D é procedural. Canais reais de contato, hospedagem e publicação continuam pendentes de definição pela equipe.
+Os verificadores de navegador usam Playwright disponível no projeto vizinho `astro-bank` e Edge instalado; essa dependência é apenas de desenvolvimento. Artefatos ficam em `artifacts/`, fora do Git.
+
+Three.js 0.170 e Manrope são servidos localmente, com licenças em `public/vendor`. Logo Astro fornecida pelo projeto do usuário. A cena 3D é procedural. Canais reais de contato, hospedagem e publicação continuam pendentes de definição pela equipe. Revisão local em `docs/security-review.md`.

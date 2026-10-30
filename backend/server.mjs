@@ -1,8 +1,7 @@
 import http from 'node:http';
-import {readFile,realpath,mkdir} from 'node:fs/promises';
+import {readFile,realpath} from 'node:fs/promises';
 import {resolve,extname,relative,isAbsolute,dirname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {homedir} from 'node:os';
 const project=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.woff2':'font/woff2'};
 const loopback=host=>['127.0.0.1','localhost','::1'].includes(host);
@@ -25,16 +24,15 @@ function validate(value){
 function limiter({max=20,windowMs=60000,maxEntries=256}={}){
  const entries=new Map();return address=>{const now=Date.now();for(const [key,item] of entries)if(item.until<=now)entries.delete(key);let item=entries.get(address);if(!item){if(entries.size>=maxEntries)return false;item={count:0,until:now+windowMs};entries.set(address,item);}return ++item.count<=max;};
 }
-export async function createAstroServer({enableIntake=false,host='127.0.0.1',publicDir=resolve(project,'public'),store,storeFactory,dataDir=process.env.ASTRO_DATA_DIR,rateLimit}={}){
+export async function createAstroServer({enableIntake=false,host='127.0.0.1',publicDir=resolve(project,'public'),store,storeFactory,databaseUrl=process.env.DATABASE_URL,rateLimit}={}){
  if(enableIntake&&!loopback(host))throw new Error('Local intake requires loopback binding');
  const root=await realpath(publicDir),allow=limiter(rateLimit);
  if(enableIntake&&!store){
-  const folder=resolve(dataDir||resolve(process.env.LOCALAPPDATA||resolve(homedir(),'.local','share'),'AstroSecurity','data'));
-  if(inside(root,folder))throw new Error('Storage must be private');
-  await mkdir(folder,{recursive:true});if(inside(root,await realpath(folder)))throw new Error('Storage must be private');
-  const filePath=resolve(folder,'assessment-requests.sqlite');
-  try{if(inside(root,await realpath(filePath)))throw new Error('Storage must be private');}catch(error){if(error.code!=='ENOENT')throw error;}
-  const factory=storeFactory||(await import('../db/store.mjs')).createAssessmentStore;store=await factory({filePath});
+  if(typeof databaseUrl!=='string'||!databaseUrl.trim())throw new Error('DATABASE_URL is required for intake');
+  try{
+   const factory=storeFactory||(await import('../db/store.mjs')).createAssessmentStore;
+   store=await factory({connectionString:databaseUrl});
+  }catch{throw new Error('Intake database unavailable');}
  }
  const reply=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
  const fail=(res,status,code,fields)=>reply(res,status,{error:{code,...(fields?{fields}:{})}});
@@ -61,5 +59,5 @@ export async function createAstroServer({enableIntake=false,host='127.0.0.1',pub
   }catch{if(!res.headersSent)fail(res,404,'not_found');else res.destroy();}
  });
  const listen=server.listen;server.listen=function(...args){if(enableIntake){const binding=typeof args[0]==='object'?args[0].host:args[1];if(!loopback(binding))throw new Error('Local intake requires loopback binding');}return listen.apply(this,args);};
- server.on('close',()=>{if(enableIntake)void store?.close?.();});return server;
+ server.on('close',()=>{if(enableIntake)Promise.resolve().then(()=>store?.close?.()).catch(()=>console.error('Intake database shutdown failed'));});return server;
 }

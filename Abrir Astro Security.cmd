@@ -1,5 +1,6 @@
 @echo off
+setlocal
 cd /d "%~dp0"
-echo Astro Security: http://localhost:4180/?motion=full
-node server.mjs
+node dev-local.mjs 4180
 pause
+endlocal

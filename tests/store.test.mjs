@@ -1,15 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,mkdir,rename,rm,rmdir,readdir} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join,resolve,sep} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import pg from 'pg';
 import {createAssessmentStore} from '../db/store.mjs';
-import initSqlJs from '../db/vendor/sql-wasm.cjs';
-import {fileURLToPath} from 'node:url';
 const input={name:'Example',company:'Example Ltd',email:'test@example.com',service:'web_api',scope:"Literal '); DROP TABLE assessment_requests; -- https://example.com <script>"};
-async function fixture(t){const dir=await mkdtemp(join(tmpdir(),'astro-store-test-'));t.after(async()=>{assert.ok(resolve(dir).startsWith(resolve(tmpdir())+sep));await rm(dir,{recursive:true,force:true});});return {dir,filePath:join(dir,'requests.sqlite')};}
-async function rows(filePath){const SQL=await initSqlJs({locateFile:()=>fileURLToPath(new URL('../db/vendor/sql-wasm.wasm',import.meta.url))});const db=new SQL.Database(await readFile(filePath));try{return db.exec('SELECT * FROM assessment_requests')[0];}finally{db.close();}}
-test('real SQLite, versioned schema and literal data survive reopen',async t=>{const {filePath}=await fixture(t);let store=await createAssessmentStore({filePath});const result=await store.create(input);assert.equal(result.status,'new');assert.match(result.id,/^[0-9a-f-]{36}$/);assert.ok(Number.isFinite(Date.parse(result.created_at)));await store.close();assert.equal((await readFile(filePath)).subarray(0,16).toString(),'SQLite format 3\0');store=await createAssessmentStore({filePath});await store.create({...input,name:'Second'});await store.close();const data=await rows(filePath);assert.equal(data.values.length,2);assert.equal(data.values[0][data.columns.indexOf('scope')],input.scope);});
-test('concurrent creates persist every row and reject a second writer',async t=>{const {filePath}=await fixture(t);const store=await createAssessmentStore({filePath});await assert.rejects(createAssessmentStore({filePath}));const results=await Promise.all(Array.from({length:15},()=>store.create(input)));assert.equal(new Set(results.map(x=>x.id)).size,15);await store.close();assert.equal((await rows(filePath)).values.length,15);await assert.rejects(store.create(input));});
-test('corrupt existing file is rejected without overwrite',async t=>{const {filePath}=await fixture(t);const original=Buffer.from('not a database');await writeFile(filePath,original);await assert.rejects(createAssessmentStore({filePath}));assert.deepEqual(await readFile(filePath),original);});
-test('failed atomic replacement does not contaminate memory; queue recovers',async t=>{const {filePath,dir}=await fixture(t);const store=await createAssessmentStore({filePath});await store.create(input);const backup=join(dir,'backup.sqlite');await rename(filePath,backup);await mkdir(filePath);await assert.rejects(store.create({...input,name:'Must not survive'}));await rmdir(filePath);await rename(backup,filePath);await store.create({...input,name:'Survives'});await store.close();const data=await rows(filePath);assert.equal(data.values.length,2);assert.ok(!data.values.flat().includes('Must not survive'));assert.ok(!(await readdir(dir)).some(x=>x.endsWith('.tmp')));});
+const testUrl=process.env.ASTRO_TEST_DATABASE_URL;
+const integration={skip:!testUrl?'PostgreSQL unavailable: set ASTRO_TEST_DATABASE_URL to an isolated local test database':false};
+async function fixture(t){
+ const schema='astro_test_'+randomUUID().replaceAll('-','');
+ const admin=new pg.Client({connectionString:testUrl});await admin.connect();
+ await admin.query(`CREATE SCHEMA ${schema}`);
+ t.after(async()=>{await admin.query(`DROP SCHEMA ${schema} CASCADE`);await admin.end();});
+ const url=new URL(testUrl);url.searchParams.set('options',`-c search_path=${schema}`);
+ return {connectionString:url.toString(),admin,schema};
+}
+test('requires explicit PostgreSQL URL and rejects SQLite configuration',async()=>{
+ await assert.rejects(createAssessmentStore({connectionString:''}),/DATABASE_URL/);
+ await assert.rejects(createAssessmentStore({connectionString:'sqlite:local.sqlite'}),/PostgreSQL/);
+});
+test('PostgreSQL migration, literal data and reopen persist committed data',integration,async t=>{
+ const {connectionString,admin,schema}=await fixture(t);
+ let store=await createAssessmentStore({connectionString});
+ const result=await store.create(input);assert.equal(result.status,'new');assert.match(result.id,/^[0-9a-f-]{36}$/);assert.ok(Number.isFinite(Date.parse(result.created_at)));
+ await store.close();store=await createAssessmentStore({connectionString});await store.create({...input,name:'Second'});await store.close();
+ const {rows}=await admin.query(`SELECT * FROM ${schema}.assessment_requests ORDER BY created_at`);
+ assert.equal(rows.length,2);assert.equal(rows[0].scope,input.scope);
+ assert.equal((await admin.query(`SELECT version FROM ${schema}.astro_schema_migrations`)).rows[0].version,1);
+});
+test('multiple PostgreSQL stores migrate concurrently and retain every concurrent create',integration,async t=>{
+ const {connectionString,admin,schema}=await fixture(t);
+ const stores=await Promise.all([createAssessmentStore({connectionString}),createAssessmentStore({connectionString})]);
+ try{const results=await Promise.all(Array.from({length:20},(_,i)=>stores[i%2].create(input)));assert.equal(new Set(results.map(x=>x.id)).size,20);}
+ finally{await Promise.all(stores.map(s=>s.close()));}
+ assert.equal((await admin.query(`SELECT count(*)::int AS count FROM ${schema}.assessment_requests`)).rows[0].count,20);
+ await assert.rejects(stores[0].create(input),/closed/);
+});
+test('constraint failure rolls back and subsequent insert succeeds',integration,async t=>{
+ const {connectionString,admin,schema}=await fixture(t);const store=await createAssessmentStore({connectionString});
+ try{await store.create(input);await assert.rejects(store.create({...input,service:'invalid'}));await store.create({...input,name:'Survives'});}
+ finally{await store.close();}
+ assert.equal((await admin.query(`SELECT count(*)::int AS count FROM ${schema}.assessment_requests`)).rows[0].count,2);
+});
+test('unsupported migration version is rejected without changing existing data',integration,async t=>{
+ const {connectionString,admin,schema}=await fixture(t);const store=await createAssessmentStore({connectionString});await store.create(input);await store.close();
+ await admin.query(`INSERT INTO ${schema}.astro_schema_migrations(version) VALUES (999)`);
+ await assert.rejects(createAssessmentStore({connectionString}),/Unsupported schema/);
+ assert.equal((await admin.query(`SELECT count(*)::int AS count FROM ${schema}.assessment_requests`)).rows[0].count,1);
+});

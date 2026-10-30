@@ -1,5 +1,7 @@
 # Revisão local de segurança
 
+> A revisão vigente é a seção PostgreSQL abaixo. As seções anteriores ao final registram o inventário e a primeira entrega SQLite, substituída no runtime por decisão do usuário.
+
 Data: 2026-10-30. Escopo inicial: `server.mjs`, `public/app.js`, `public/experience.js`, `public/immersive.js` e `docs/backend-proposal.md`. Revisão estática; sem exploração, acesso a domínios externos ou alteração da implementação. Esta revisão inicial antecede a integração da API e não certifica uma implantação pública.
 
 ## Estado existente
@@ -32,7 +34,7 @@ Manter uma única lista de campos entre formulário, documentação, servidor e 
 
 Same-origin reduz abuso por navegadores, mas não autentica clientes nem substitui limiter. Limiter em memória é adequado ao escopo dev de processo único e reinicia com o processo; não deve ser descrito como proteção distribuída. SQLite local fora da pasta pública não fornece, por si só, criptografia ou controle de acesso do sistema operacional.
 
-## Revisão final da integração local
+## Histórico — revisão da integração SQLite
 
 Revisados `backend/server.mjs`, `server.mjs`, `db/store.mjs`, migração 001, `db/README.md`, formulário e frontend integrados, contrato do primeiro ciclo e testes de API, persistência e integração. **Nenhum achado Critical ou Important confirmado no escopo local definido.** Isso não certifica implantação pública nem protege contra usuários com acesso de escrita aos arquivos do processo.
 
@@ -47,3 +49,17 @@ Revisados `backend/server.mjs`, `server.mjs`, `db/store.mjs`, migração 001, `d
 Evidência executada nesta revisão: `node --test tests/api.test.mjs tests/store.test.mjs tests/integration.test.mjs` — 19 testes passaram, zero falhas. Além disso, a sonda de duplicatas e aborto retornou `{duplicateInvalidLast:422,duplicateValidLast:201,healthyAfterAbort:201,records:2}`; os dois registros são apenas os dois envios válidos, sem registro do corpo interrompido.
 
 Limites documentados e compatíveis com a demonstração: único processo gravador (a trava é somente intraprocesso); banco inteiro em memória/exportação a cada criação; limiter reinicia com processo; sincronização do arquivo não promete persistência do rename após queda de energia no Windows. Não descrevê-los como garantias de operação pública. Retenção e implantação pública continuam decisões futuras, sem bloquear a entrega local desativada por padrão.
+
+## Revisão vigente — PostgreSQL e site imersivo principal
+
+Escopo em 2026-10-30: `db/store.mjs`, migração 001 PostgreSQL, `db/local-postgres.mjs`, `backend/server.mjs`, `server.mjs` e `public/app.js`. O site imersivo na raiz mantém o mesmo formulário; a abertura WebGL não deriva URLs ou comandos dos campos. A implementação ativa não importa SQL.js nem usa arquivos SQLite.
+
+Revisão estática: nenhum achado Critical ou Important confirmado no escopo local. A configuração ativa continua desabilitada por padrão e exige loopback e DATABASE_URL quando habilitada. Falha de conexão impede inicialização e não expõe URL ou credenciais; sucesso depende da Promise de persistência. Origem fixa da porta efetiva, validação de campos, limite de bytes e limiter pelo socket foram preservados. Não há consulta pública de pedidos.
+
+O driver pg usa parâmetros para todos os valores recebidos. Migrações são transacionais, serializadas por advisory lock e recusam versões desconhecidas. Inserções usam transação com synchronous_commit=on e retornam somente depois de COMMIT. Erros executam ROLLBACK e não ecoam dados pela API. Indisponibilidade durante COMMIT pode deixar confirmação incerta para o cliente; não há promessa de idempotência e um reenvio pode duplicar um pedido.
+
+O helper portátil é restrito a Windows e ao diretório privado LOCALAPPDATA. Aplica ACL antes de criar segredos, usa senha aleatória de 256 bits, SCRAM e loopback 127.0.0.1:55432; astro_app não recebe superuser, criação de bancos ou criação de roles. Binários vêm da distribuição EDB. O administrador inicial tem senha temporária não preservada; recuperação administrativa e inicialização interrompida são manuais. Não há modificação de serviço global nem exclusão de clusters. A configuração secreta fica fora do projeto e da pasta pública.
+
+Evidência executada pela revisão: `node --test tests/api.test.mjs tests/store.test.mjs tests/integration.test.mjs` com ASTRO_TEST_DATABASE_URL da instância local — 22 testes passaram, zero falhas e zero skips. Cobrem configuração, erros sanitizados, bytes reais, origem, contenção de junction, migração concorrente, persistência após reabertura, SQL literal, rollback e resposta 503 por restrição real sem registros fantasmas. Inspeção do sistema confirmou escuta PostgreSQL somente em 127.0.0.1:55432, pg_hba com SCRAM para todas as regras ativas e ACL do arquivo secreto herdada somente pelo usuário atual. Consulta pg_roles confirmou astro_app com rolsuper=false, rolcreatedb=false, rolcreaterole=false. Nenhum valor de senha ou URL secreta foi impresso.
+
+Limites atuais: banco local e role dona das tabelas para migrações; isso não é separação de privilégios de produção. TLS externo, backups, retenção, autenticação administrativa e proteção distribuída não foram implantados. Não há scanner nem publicação; o envio de briefing não autoriza testes ofensivos.

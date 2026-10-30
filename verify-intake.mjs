@@ -1,19 +1,21 @@
 import {chromium} from '../astro-bank/node_modules/playwright/index.mjs';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join,resolve,sep} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {readFile,mkdir} from 'node:fs/promises';
 import {createAstroServer} from './server.mjs';
-import initSqlJs from './db/vendor/sql-wasm.cjs';
+import pg from 'pg';
+import {randomUUID} from 'node:crypto';
 
-const dir=await mkdtemp(join(tmpdir(),'astro-browser-intake-'));
-const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader-webgl']});
+if(!process.env.ASTRO_TEST_DATABASE_URL)throw new Error('Set ASTRO_TEST_DATABASE_URL for real PostgreSQL browser verification');
+const schema='astro_test_'+randomUUID().replaceAll('-','');assert.match(schema,/^astro_test_[0-9a-f]{32}$/);
+const admin=new pg.Client({connectionString:process.env.ASTRO_TEST_DATABASE_URL});await admin.connect();await admin.query('CREATE SCHEMA '+schema);
+const databaseUrl=new URL(process.env.ASTRO_TEST_DATABASE_URL);databaseUrl.searchParams.set('options','-c search_path='+schema);await mkdir('artifacts',{recursive:true});
+let browser;
 const errors=[],external=[];
 let server;
 try{
+ browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader-webgl']});
  for(const enabled of [false,true]){
-  server=await createAstroServer({enableIntake:enabled,dataDir:dir});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
+  server=await createAstroServer({enableIntake:enabled,databaseUrl:databaseUrl.toString()});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
   for(const width of [390,320]){
    const page=await browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'});let posts=0;
    page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().startsWith('http')&&!r.url().startsWith(origin+'/'))external.push(r.url());if(r.method()==='POST')posts++;});
@@ -25,6 +27,6 @@ try{
   }
   await new Promise(r=>server.close(r));server=null;
  }
- const SQL=await initSqlJs({locateFile:()=>fileURLToPath(new URL('./db/vendor/sql-wasm.wasm',import.meta.url))});const db=new SQL.Database(await readFile(join(dir,'assessment-requests.sqlite')));try{assert.deepEqual(db.exec('SELECT email,service FROM assessment_requests ORDER BY email')[0].values,[['browser320@example.com','web_api'],['browser390@example.com','web_api']]);}finally{db.close();}
- assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('PASS real SQLite contains exactly two explicit browser submissions; no external HTTP requests or page errors');
-}finally{if(server)await new Promise(r=>server.close(r));await browser.close();assert.ok(resolve(dir).startsWith(resolve(tmpdir())+sep));await rm(dir,{recursive:true,force:true});}
+ const result=await admin.query('SELECT email,service FROM '+schema+'.assessment_requests ORDER BY email');assert.deepEqual(result.rows,[{email:'browser320@example.com',service:'web_api'},{email:'browser390@example.com',service:'web_api'}]);
+ assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('PASS real PostgreSQL contains exactly two explicit browser submissions; no external HTTP requests or page errors');
+}finally{if(server)await new Promise(r=>server.close(r));await browser?.close();assert.match(schema,/^astro_test_[0-9a-f]{32}$/);try{await admin.query('DROP SCHEMA '+schema+' CASCADE');}finally{await admin.end();}}
