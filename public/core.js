@@ -1,58 +1,41 @@
 import * as THREE from './vendor/three.module.js';
 import {RoomEnvironment} from './vendor/RoomEnvironment.js';
-import {applicationPose} from './experience.js';
-function rect(c,x,y,w,h,r,fill,stroke){c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=1.5;c.stroke();}}
-function text(c,value,x,y,size=22,color='#171719',weight=500){c.fillStyle=color;c.font=`${weight} ${size}px Manrope,Arial,sans-serif`;c.fillText(value,x,y);}
-function line(c,x,y,endX,endY,color='#d9d9d7'){c.strokeStyle=color;c.lineWidth=1.5;c.beginPath();c.moveTo(x,y);c.lineTo(endX,endY);c.stroke();}
-function lock(c,x,y,color='#222',valid=false){c.save();c.translate(x,y);c.strokeStyle=color;c.lineWidth=3;c.lineCap='round';c.beginPath();c.roundRect(0,17,30,25,5);c.moveTo(6,17);c.lineTo(6,10);c.arc(15,10,9,Math.PI,0);c.lineTo(24,17);c.stroke();if(valid){c.beginPath();c.moveTo(8,29);c.lineTo(13,34);c.lineTo(22,25);c.stroke();}else{c.beginPath();c.moveTo(15,25);c.lineTo(15,33);c.stroke();}c.restore();}
-function makeTexture(height,draw){const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=height;const c=canvas.getContext('2d');draw(c);const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;return map;}
-function rounded(w,h,r){const s=new THREE.Shape(),x=-w/2,y=-h/2;s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s;}
-function surface(w,h,material){const geometry=new THREE.ShapeGeometry(rounded(w,h,.11)),uv=geometry.attributes.uv,pos=geometry.attributes.position;for(let i=0;i<uv.count;i++)uv.setXY(i,(pos.getX(i)+w/2)/w,(pos.getY(i)+h/2)/h);return new THREE.Mesh(geometry,material);}
+import {SVGLoader} from './vendor/SVGLoader.js';
+import {orbitPose} from './experience.js';
+const TAU=Math.PI*2;
+function circleGeometry(radius,start=0,length=TAU,segments=240){const points=[];for(let i=0;i<=segments;i++){const angle=start+i/segments*length;points.push(new THREE.Vector3(Math.cos(angle)*radius,Math.sin(angle)*radius,0));}return new THREE.BufferGeometry().setFromPoints(points);}
+function haloTexture(){const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'#ffffffc0');g.addColorStop(.16,'#ffffff40');g.addColorStop(1,'#ffffff00');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 export async function createCore(host,{onFailure=()=>{}}={}){
  let renderer;try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});}catch(error){onFailure(error);return null;}
- await document.fonts.ready;const logo=new Image();logo.src='./assets/logo-astro-preto.svg';await logo.decode().catch(()=>{});
- renderer.setClearColor(0,0);renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<761?1.5:1.8));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;host.appendChild(renderer.domElement);
+ renderer.setClearColor(0,0);renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<761?1.5:1.8));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;host.appendChild(renderer.domElement);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(35,1,.1,60),world=new THREE.Group();scene.add(world);
- const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment(),env=pmrem.fromScene(room,.03);scene.environment=env.texture;room.dispose();pmrem.dispose();scene.add(new THREE.AmbientLight(0xffffff,1));
- for(const [x,y,z,power] of [[-4,6,5,4],[5,1,3,3],[0,-4,-2,2]]){const light=new THREE.DirectionalLight(0xffffff,power);light.position.set(x,y,z);scene.add(light);}
- const frameMat=new THREE.MeshStandardMaterial({color:0x55555b,metalness:.8,roughness:.33});
- const uiMap=makeTexture(700,c=>{
-  rect(c,0,0,1000,700,26,'#f6f6f3');rect(c,0,0,1000,76,24,'#e5e5e2');c.fillStyle='#e5e5e2';c.fillRect(0,36,1000,40);
-  for(let i=0;i<3;i++){c.fillStyle=['#8a8a8d','#aaaab0','#c1c1c5'][i];c.beginPath();c.arc(34+i*25,37,6,0,Math.PI*2);c.fill();}
-  rect(c,270,20,470,34,8,'#f5f5f2');text(c,'portal.exemplo',408,44,17,'#666');
-  if(logo.naturalWidth)c.drawImage(logo,43,110,145,26);text(c,'Área do cliente',790,130,18,'#666');line(c,42,165,958,165);
-  text(c,'Seus documentos',43,225,42,'#171719',600);text(c,'Tudo o que sua equipe precisa, em um lugar.',44,267,21,'#777');
-  rect(c,42,305,916,86,12,'#fff','#d5d5d0');rect(c,63,325,44,44,8,'#ecece8');text(c,'↓',77,356,25);text(c,'Fatura #1042',130,344,24,'#222',600);text(c,'Documento da sua empresa',130,370,16,'#777');text(c,'Visualizar',810,354,18,'#444');
-  for(const [name,y] of [['Relatório mensal',447],['Contrato de serviço',538]]){line(c,43,y+37,958,y+37);text(c,'↳',65,y,25,'#888');text(c,name,130,y,23,'#555');text(c,'Disponível',810,y,16,'#888');}
-  lock(c,45,607,'#777',true);text(c,'Você está conectado como usuário da empresa.',95,636,18,'#666');
- });
- const apiMaps=[0,1,2,3].map(state=>makeTexture(340,c=>{
-  rect(c,0,0,1000,340,24,state===1?'#e8e8e4':'#202023','#73737b');const dark=state!==1,ink=dark?'#f1f1ef':'#111',muted=dark?'#a9a9af':'#56565b';
-  text(c,'API',38,57,23,ink,700);text(c,'Permissão por recurso',38,117,34,ink,600);
-  text(c,['Análise do controle de acesso','Falha de autorização identificada','Verificação aplicada no servidor','Reteste: acesso indevido bloqueado'][state],38,164,23,muted);line(c,38,195,962,195,dark?'#45454c':'#bdbdb8');
-  text(c,state<2?'Quem pode acessar este documento?':'Usuário + empresa + documento',38,244,20,muted);text(c,['Validando escopo','Permissão ausente','Permissão verificada','Correção validada'][state],38,294,22,ink,600);lock(c,901,89,ink,state>=2);
- }));
- const dbMap=makeTexture(270,c=>{
-  rect(c,0,0,1000,270,24,'#29292d','#73737b');text(c,'Dados',38,58,24,'#eee',650);text(c,'Documentos da empresa',38,119,33,'#eee',550);text(c,'Acesso limitado aos recursos autorizados.',38,167,21,'#b3b3ba');for(let i=0;i<3;i++)rect(c,38+i*122,200,105,25,5,'#414146');
-  c.strokeStyle='#bfc0c7';c.lineWidth=3;for(let i=0;i<3;i++){c.beginPath();c.ellipse(909,91+i*24,35,12,0,0,Math.PI*2);c.stroke();}line(c,874,91,874,139,'#bfc0c7');line(c,944,91,944,139,'#bfc0c7');
- });
- const apiUniforms={nextMap:{value:apiMaps[1]},blend:{value:0}},apiMaterial=new THREE.MeshBasicMaterial({map:apiMaps[0],toneMapped:false});
- apiMaterial.onBeforeCompile=shader=>{Object.assign(shader.uniforms,apiUniforms);shader.fragmentShader='uniform sampler2D nextMap;\nuniform float blend;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#ifdef USE_MAP\n diffuseColor *= mix(texture2D(map,vMapUv),texture2D(nextMap,vMapUv),blend);\n#endif');};apiMaterial.customProgramCacheKey=()=>'astro-application-api-v1';
- function plate(w,h,material){const group=new THREE.Group(),back=new THREE.Mesh(new THREE.ExtrudeGeometry(rounded(w,h,.11),{depth:.10,bevelEnabled:true,bevelSize:.015,bevelThickness:.015,bevelSegments:2,steps:1,curveSegments:12}),frameMat);back.position.z=-.11;group.add(back);const face=surface(w-.02,h-.02,material);face.position.z=.015;group.add(face);world.add(group);return group;}
- const ui=plate(4.4,3.08,new THREE.MeshBasicMaterial({map:uiMap,toneMapped:false})),api=plate(4.2,1.43,apiMaterial),data=plate(4,1.08,new THREE.MeshBasicMaterial({map:dbMap,toneMapped:false}));
- const connectorGeo=new THREE.BufferGeometry();connectorGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(18),3));const connectors=new THREE.LineSegments(connectorGeo,new THREE.LineBasicMaterial({color:0x9999a2,transparent:true,opacity:.6}));world.add(connectors);
- const signal=new THREE.Mesh(new THREE.SphereGeometry(.045,12,8),new THREE.MeshBasicMaterial({color:0xffffff}));world.add(signal);
- let width=0,height=0,lost=false,frames=0,lastProgress=0,lastApi=-1;
+ const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment(),env=pmrem.fromScene(room,.03);scene.environment=env.texture;room.dispose();pmrem.dispose();scene.add(new THREE.AmbientLight(0xffffff,.9));
+ for(const [x,y,z,power] of [[-3,5,6,4],[5,0,4,2],[0,-3,-3,3]]){const light=new THREE.DirectionalLight(0xffffff,power);light.position.set(x,y,z);scene.add(light);}
+ const logo=new THREE.Group(),logoMesh=new THREE.Group();logo.add(logoMesh);world.add(logo);
+ try{const svg=await new SVGLoader().loadAsync('./assets/logo-astro-preto.svg'),material=new THREE.MeshStandardMaterial({color:0xc8c8cb,metalness:.72,roughness:.29,envMapIntensity:1.1});for(const path of svg.paths)for(const shape of SVGLoader.createShapes(path)){const geometry=new THREE.ExtrudeGeometry(shape,{depth:10,bevelEnabled:true,bevelSize:.8,bevelThickness:.8,bevelSegments:3,curveSegments:24,steps:1});logoMesh.add(new THREE.Mesh(geometry,material));}logoMesh.scale.set(.0067,-.0067,.0067);logoMesh.updateMatrixWorld(true);const center=new THREE.Box3().setFromObject(logoMesh).getCenter(new THREE.Vector3());logoMesh.position.sub(center);}catch(error){renderer.dispose();env.dispose();renderer.domElement.remove();onFailure(error);return null;}
+ const rings=[];
+ for(const [index,radius] of [2.48,2.78].entries()){
+  const group=new THREE.Group(),material=new THREE.LineBasicMaterial({color:index?0x66666e:0xb5b5bd,transparent:true,opacity:index?.35:.65,depthWrite:false});
+  group.add(new THREE.LineLoop(circleGeometry(radius),material));world.add(group);rings.push(group);
+ }
+ const halo=haloTexture(),pointGeometry=new THREE.SphereGeometry(.032,16,12),pointMaterial=new THREE.MeshBasicMaterial({color:0xf8f8ff});
+ const points=[],labels=[...host.parentElement.querySelectorAll('.orbit-label')];
+ for(let i=0;i<6;i++){
+  const ring=i<4?0:1,radius=ring?2.78:2.48,phase=i<4?i*TAU/4:(i-4)*Math.PI+.55;
+  const marker=new THREE.Group();marker.add(new THREE.Mesh(pointGeometry,pointMaterial));const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:halo,transparent:true,opacity:.45,depthWrite:false}));glow.scale.setScalar(.27);marker.add(glow);rings[ring].add(marker);
+  const geometry=circleGeometry(radius,-.29,.29,30),colors=[];for(let j=0;j<31;j++){const value=(j/30)**2*.9;colors.push(value,value,value);}geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const trail=new THREE.Line(geometry,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending}));rings[ring].add(trail);points.push({marker,trail,radius,phase,ring,label:i<4?labels[i]:null});
+ }
+ const projected=new THREE.Vector3();let width=0,height=0,lost=false,frames=0,lastProgress=0,lastTime=0;
  function resize(){const w=host.clientWidth,h=host.clientHeight;if(w===width&&h===height)return;width=w;height=h;camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
- function render(progress=lastProgress){if(lost)return;lastProgress=progress;resize();const pose=applicationPose(progress);world.rotation.set(pose.tilt,pose.yaw,.025);world.position.y=0;
-  ui.position.set(-.10-pose.open*.16,.85+pose.open*.60,.75+pose.open*.18);api.position.set(.20,-.70-pose.open*.55,-.12+pose.open*.44);data.position.set(.38,-1.65-pose.open,-.9+pose.open*.65);
-  const positions=connectorGeo.attributes.position,points=[[-2.36,ui.position.y-1.1,ui.position.z],[-2.36,api.position.y+.35,api.position.z],[-2.36,api.position.y+.35,api.position.z],[-2.08,api.position.y+.35,api.position.z],[-1.62,api.position.y-.7,api.position.z],[-1.62,data.position.y+.45,data.position.z]];points.forEach((p,i)=>positions.setXYZ(i,...p));positions.needsUpdate=true;
-  signal.position.set(-2.36,THREE.MathUtils.lerp(ui.position.y-1.1,api.position.y+.35,Math.min(1,progress*2)),THREE.MathUtils.lerp(ui.position.z,api.position.z,Math.min(1,progress*2)));signal.visible=progress<.63;
-  const from=progress<.55?0:progress<.80?1:2,to=from+1,mix=from===0?pose.finding:from===1?pose.fixed:pose.verified;if(from!==lastApi){apiMaterial.map=apiMaps[from];lastApi=from;}apiUniforms.nextMap.value=apiMaps[to];apiUniforms.blend.value=mix;
-  camera.position.set(0,.10,(3.65+pose.open*.55)/Math.tan(THREE.MathUtils.degToRad(17.5))*Math.max(1,1/camera.aspect));camera.lookAt(0,.10,0);camera.updateMatrixWorld();renderer.render(scene,camera);frames++;
-  renderer.domElement.dataset.frames=String(frames);renderer.domElement.dataset.open=pose.open.toFixed(3);renderer.domElement.dataset.stage=pose.stage;
+ function render(progress=lastProgress,time=lastTime){if(lost)return;lastProgress=progress;lastTime=time;resize();const pose=orbitPose(progress);
+  world.rotation.set(0,0,0);rings[0].rotation.set(pose.tilt,pose.yaw,pose.roll);rings[1].rotation.set(pose.tilt+.12,pose.yaw-.15,pose.roll+.08);
+  logo.rotation.set(-.04,.10+pose.yaw*.12,-.015);logo.position.set(0,0,.12);
+  points.forEach(point=>{const angle=point.phase+time*(point.ring?-.09:.13)+progress*(point.ring?-.65:1.05);point.marker.position.set(Math.cos(angle)*point.radius,Math.sin(angle)*point.radius,0);point.trail.rotation.z=angle;});
+  camera.position.set(0,0,3.55/Math.tan(THREE.MathUtils.degToRad(17.5))*Math.max(1,1/camera.aspect));camera.lookAt(0,0,0);camera.updateMatrixWorld();world.updateMatrixWorld(true);
+  points.forEach(point=>{if(!point.label)return;point.marker.getWorldPosition(projected);const depth=projected.z;projected.project(camera);const x=(projected.x+1)*width/2,y=(1-projected.y)*height/2;point.label.style.transform=`translate3d(${x}px,${y-14}px,0) translate(-50%,-100%)`;point.label.style.opacity=String(.55+Math.max(0,Math.min(1,(depth+2.5)/5))*.4);});
+  renderer.render(scene,camera);frames++;renderer.domElement.dataset.frames=String(frames);renderer.domElement.dataset.open=pose.spread.toFixed(3);renderer.domElement.dataset.orbitTilt=pose.tilt.toFixed(3);renderer.domElement.dataset.orbitTime=time.toFixed(3);renderer.domElement.dataset.scene='orbits';
  }
  renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;host.parentElement.dataset.renderer='fallback';onFailure(new Error('WebGL context lost'));});
- resize();for(const map of [uiMap,...apiMaps,dbMap])renderer.initTexture(map);await renderer.compileAsync(scene,camera);render(0);
- return {render,isValid:()=>!lost,stats:()=>({frames,width,height,lost}),destroy(){renderer.dispose();env.dispose();}};
+ resize();renderer.initTexture(halo);await renderer.compileAsync(scene,camera);render(0,0);
+ return {render,isValid:()=>!lost,stats:()=>({frames,width,height,lost}),destroy(){scene.traverse(object=>{object.geometry?.dispose();if(object.material)for(const material of (Array.isArray(object.material)?object.material:[object.material]))material.dispose();});halo.dispose();renderer.dispose();env.dispose();}};
 }

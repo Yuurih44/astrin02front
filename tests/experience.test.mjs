@@ -1,20 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applicationPose,heroCopyVisibility,composeBrief} from '../public/experience.js';
-test('application layers open continuously, reversibly, and clamp scroll',()=>{
- assert.deepEqual(applicationPose(-1),applicationPose(0));assert.deepEqual(applicationPose(2),applicationPose(1));
- assert.equal(applicationPose(0).open,0);assert.equal(applicationPose(1).open,1);
- let last=applicationPose(0);for(let i=1;i<=1000;i++){const next=applicationPose(i/1000);for(const key of ['open','yaw','tilt','finding','fixed','verified'])assert.ok(Math.abs(next[key]-last[key])<.02);last=next;}
- const at=applicationPose(.45);applicationPose(.9);assert.deepEqual(applicationPose(.45),at);
-});
-test('application illustrates a permission finding, correction and retest in sequence',()=>{
- assert.equal(applicationPose(0).stage,'application');
- assert.equal(applicationPose(.5).stage,'finding');
- assert.equal(applicationPose(.8).stage,'correction');
- assert.equal(applicationPose(1).stage,'retest');
- assert.equal(applicationPose(.5).fixed,0);
- assert.equal(applicationPose(.8).verified,0);
- assert.equal(applicationPose(1).verified,1);
+import {orbitPose,heroCopyVisibility,composeBrief} from '../public/experience.js';
+test('orbital perspective stays continuous, reversible and bounded while scrolling',()=>{
+ assert.deepEqual(orbitPose(-1),orbitPose(0));assert.deepEqual(orbitPose(2),orbitPose(1));
+ let last=orbitPose(0);for(let i=1;i<=1000;i++){const next=orbitPose(i/1000);for(const key of ['spread','yaw','tilt','roll'])assert.ok(Math.abs(next[key]-last[key])<.02);last=next;}
+ const at=orbitPose(.45);orbitPose(.9);assert.deepEqual(orbitPose(.45),at);
+ assert.ok(Math.abs(orbitPose(1).tilt-orbitPose(0).tilt)>.2);
+ assert.ok(Math.abs(orbitPose(1).yaw-orbitPose(0).yaw)>.2);
 });
 test('hero headings never overlap while transitioning into the concrete analysis',()=>{
  assert.deepEqual(heroCopyVisibility(0),{first:1,second:0});

@@ -12,7 +12,7 @@ try{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width}: horizontal overflow`);
   const frames=()=>page.locator('#core-canvas canvas').getAttribute('data-frames');
   await page.evaluate(()=>{const e=document.querySelector('.hero');scrollTo({top:e.offsetHeight*.40,behavior:'instant'});});await page.waitForTimeout(850);
-  assert.ok(Number(await page.locator('#core-canvas canvas').getAttribute('data-open'))>.3,'application layers separate with scroll');
+  assert.ok(Number(await page.locator('#core-canvas canvas').getAttribute('data-open'))>.3,'orbital perspective follows scroll');
   await page.screenshot({path:`artifacts/verified-${width}-open.png`});
   await page.evaluate(()=>scrollTo({top:document.querySelector('.contact').offsetTop,behavior:'instant'}));await page.waitForTimeout(200);const paused=await frames();await page.waitForTimeout(200);assert.equal(await frames(),paused,'offscreen renderer pauses');
   await page.locator('input[name="name"]').fill('Ana Teste');await page.locator('input[name="company"]').fill('Empresa de teste');await page.locator('input[name="email"]').fill('ana@example.com');await page.locator('textarea').fill('Avaliação do portal de clientes e suas APIs.');
