@@ -1,0 +1,1 @@
+{"name":"astro-security","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"node server.mjs","test":"node --test tests/experience.test.mjs","check":"node --check public/app.js && node --check public/core.js && node --check public/experience.js && node --check server.mjs"}}
