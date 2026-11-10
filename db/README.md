@@ -21,6 +21,6 @@ $env:ASTRO_TEST_DATABASE_URL = $localConfig.testDatabaseUrl
 node --test tests/store.test.mjs
 ```
 
-Os testes reais criam schemas `astro_test_<UUID>` exclusivos no banco de testes e removem somente esses schemas ao finalizar. Sem `ASTRO_TEST_DATABASE_URL`, eles são marcados explicitamente como ignorados; os testes de configuração continuam ativos. Não use banco de produção para testes. O runtime não importa nem carrega SQL.js; arquivos SQLite existentes não são migrados nem apagados. Artefatos vendor anteriores podem permanecer apenas como histórico até sua remoção do repositório.
+Os testes reais criam schemas `astro_test_<UUID>` exclusivos no banco de testes e removem somente esses schemas ao finalizar. Sem `ASTRO_TEST_DATABASE_URL`, eles são marcados explicitamente como ignorados; os testes de configuração continuam ativos. Não use banco de produção para testes. O runtime não importa nem carrega SQL.js; arquivos SQLite existentes não são migrados nem apagados.
 
 O helper restringe a ACL do diretório ao usuário atual antes de criar segredos. Novas inicializações salvam também `bootstrap-admin.json` no diretório privado antes de iniciar o servidor, permitindo recuperação manual do administrador. O cluster usa a subpasta `cluster`; uma tentativa inicial vazia na subpasta `data` foi encerrada e preservada, sem serviço ativo.

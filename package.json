@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node --test tests/experience.test.mjs tests/immersive.test.mjs tests/store.test.mjs tests/api.test.mjs tests/integration.test.mjs",
-    "check": "node --check public/app.js && node --check public/core.js && node --check public/experience.js && node --check public/immersive.js && node --check public/immersive-path.js && node --check server.mjs && node --check backend/server.mjs && node --check db/store.mjs && node --check dev-local.mjs && node --check db/local-postgres.mjs",
-    "test:intake": "node verify-intake.mjs",
+    "check": "node --check public/app.js && node --check public/experience.js && node --check public/immersive.js && node --check public/immersive-path.js && node --check server.mjs && node --check backend/server.mjs && node --check db/store.mjs && node --check dev-local.mjs && node --check db/local-postgres.mjs",
     "dev:local": "node dev-local.mjs"
   },
   "dependencies": {
